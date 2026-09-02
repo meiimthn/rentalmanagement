@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดการห้องเช่า</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2B20;
+    --paper:#F4EFE1;
+    --paper-dim:#EAE2CC;
+    --brass:#A9822F;
+    --brass-dim:#C7A557;
+    --moss:#4C6B4F;
+    --moss-dim:#7C9A7E;
+    --clay:#AF4F2C;
+    --clay-bg:#F6E3D8;
+    --line:#D8CFB8;
+    --white:#FFFDF7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans Thai',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{ font-family:'Noto Serif Thai',serif; }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select,textarea{ font-family:inherit; }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    background:var(--ink);
+    color:var(--paper);
+    padding:22px 28px 18px;
+    position:sticky; top:0; z-index:30;
+    border-bottom:3px solid var(--brass);
+  }
+  .topbar-inner{
+    max-width:1180px; margin:0 auto;
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width:38px;height:38px; flex:none;
+    background:var(--brass);
+    -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2 3 9v13h6v-7h6v7h6V9z'/></svg>") no-repeat center / contain;
+    mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2 3 9v13h6v-7h6v7h6V9z'/></svg>") no-repeat center / contain;
+  }
+  .brand h1{ font-size:22px; margin:0; letter-spacing:.2px; }
+  .brand p{ margin:2px 0 0; font-size:12.5px; color:var(--paper-dim); opacity:.8; }
+  .tabs{ display:flex; gap:4px; }
+  .tab-btn{
+    background:none; border:none; color:var(--paper-dim);
+    padding:9px 16px; border-radius:7px 7px 0 0; font-size:14.5px; font-weight:500;
+    border-bottom:2px solid transparent;
+  }
+  .tab-btn.active{ color:var(--white); border-bottom:2px solid var(--brass); background:rgba(255,255,255,.06); }
+  .tab-btn:hover{ color:var(--white); }
+
+  /* ---------- Layout ---------- */
+  .wrap{ max-width:1180px; margin:0 auto; padding:26px 28px 80px; }
+  .section-title{ font-size:19px; margin:0 0 4px; }
+  .section-sub{ margin:0 0 18px; color:var(--moss); font-size:13.5px; }
+
+  /* ---------- Month picker ---------- */
+  .month-picker{
+    display:inline-flex; align-items:center; gap:10px;
+    background:var(--white); border:1px solid var(--line); border-radius:10px;
+    padding:7px 8px; margin-bottom:22px;
+  }
+  .month-picker button{
+    width:28px;height:28px; border-radius:6px; border:1px solid var(--line); background:var(--paper);
+    font-size:15px; color:var(--ink);
+  }
+  .month-picker button:hover{ background:var(--paper-dim); }
+  .month-picker .m-label{ font-weight:600; font-size:14.5px; min-width:118px; text-align:center; }
+
+  /* ---------- Stat cards ---------- */
+  .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:26px; }
+  .stat-card{ background:var(--white); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .stat-card .num{ font-family:'Noto Serif Thai',serif; font-size:28px; font-weight:600; line-height:1; }
+  .stat-card .lbl{ font-size:12.5px; color:#6b6154; margin-top:6px; }
+  .stat-card.accent{ border-color:var(--brass); }
+  .stat-card.warn .num{ color:var(--clay); }
+
+  /* ---------- Alerts ---------- */
+  .alert-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:30px; }
+  .alert-item{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--clay-bg); border:1px solid #e3bfa8; border-radius:10px; padding:11px 15px; font-size:13.8px;
+  }
+  .alert-item.soft{ background:#FBF3D9; border-color:#e8d69a; }
+  .alert-item b{ font-weight:600; }
+  .alert-item button{
+    border:none; background:var(--ink); color:var(--white); padding:6px 12px; border-radius:7px; font-size:12.5px;
+  }
+  .empty-note{ color:#8a806f; font-size:13.5px; padding:10px 2px 26px; }
+
+  /* ---------- Rooms filter ---------- */
+  .filter-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+  .filter-row .fbtn{
+    border:1px solid var(--line); background:var(--white); border-radius:20px; padding:6px 14px; font-size:13px;
+  }
+  .filter-row .fbtn.active{ background:var(--ink); color:var(--white); border-color:var(--ink); }
+  .searchbox{
+    border:1px solid var(--line); border-radius:20px; padding:6px 14px; font-size:13px; min-width:180px; background:var(--white);
+  }
+
+  /* ---------- Building groups / room grid ---------- */
+  .building-block{ margin-bottom:28px; }
+  .building-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+  .building-head h3{ font-size:15.5px; margin:0; }
+  .building-head span{ font-size:12px; color:#8a806f; }
+  .room-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(198px,1fr)); gap:12px; }
+  .room-card{
+    background:var(--white); border:1px solid var(--line); border-left:4px solid var(--moss);
+    border-radius:10px; padding:13px 14px; cursor:pointer; transition:box-shadow .15s, transform .15s;
+  }
+  .room-card:hover{ box-shadow:0 4px 14px rgba(27,43,32,.1); transform:translateY(-1px); }
+  .room-card.vacant{ border-left-color:#b9ae8f; }
+  .room-card .rid{ font-family:'Noto Serif Thai',serif; font-size:19px; font-weight:600; }
+  .room-card .price{ font-size:12.5px; color:var(--brass); font-weight:600; margin-top:1px;}
+  .room-card .tenant{ font-size:13px; margin-top:8px; color:var(--ink); }
+  .room-card .tenant.muted{ color:#a89d85; font-style:italic; }
+  .badge{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; margin-top:8px; margin-right:4px;}
+  .badge.paid{ background:#dfeadf; color:var(--moss); }
+  .badge.unpaid{ background:var(--clay-bg); color:var(--clay); }
+  .badge.exp-soon{ background:#FBF3D9; color:#9c7a0f; }
+  .badge.exp-over{ background:var(--clay-bg); color:var(--clay); }
+  .badge.ac{ background:#e6edf5; color:#3b5a86; }
+
+  /* ---------- Modal ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(20,26,17,.55); display:none; align-items:flex-start; justify-content:center; padding:34px 16px; overflow:auto; z-index:50;}
+  .overlay.show{ display:flex; }
+  .modal{ background:var(--paper); border-radius:14px; max-width:640px; width:100%; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+  .modal-head{ background:var(--ink); color:var(--white); padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
+  .modal-head h2{ margin:0; font-size:20px; }
+  .modal-head .sub{ font-size:12px; color:var(--paper-dim); opacity:.85; margin-top:2px;}
+  .modal-head button{ background:none; border:none; color:var(--paper-dim); font-size:20px; }
+  .modal-tabs{ display:flex; border-bottom:1px solid var(--line); background:var(--white); }
+  .modal-tabs button{ flex:1; border:none; background:none; padding:11px 8px; font-size:13.2px; font-weight:500; color:#847a67; border-bottom:2px solid transparent; }
+  .modal-tabs button.active{ color:var(--ink); border-bottom:2px solid var(--brass); background:var(--paper); }
+  .modal-body{ padding:20px 22px 26px; max-height:64vh; overflow:auto; }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  .field label{ font-size:12.5px; color:#6b6154; font-weight:500; }
+  .field input, .field select{ border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:14px; background:var(--white); color:var(--ink); }
+  .field.full{ grid-column:1/-1; }
+  .btn{ border:none; border-radius:8px; padding:9px 16px; font-size:13.5px; font-weight:600; }
+  .btn-primary{ background:var(--ink); color:var(--white); }
+  .btn-primary:hover{ background:#0f1a10; }
+  .btn-ghost{ background:var(--white); border:1px solid var(--line); color:var(--ink); }
+  .btn-danger{ background:var(--clay-bg); color:var(--clay); border:1px solid #e3bfa8; }
+  .btn-row{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .divider{ border:none; border-top:1px solid var(--line); margin:18px 0; }
+  .hint{ font-size:12px; color:#8a806f; margin:-6px 0 10px; }
+
+  .bill-summary{ background:var(--white); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-top:12px;}
+  .bill-line{ display:flex; justify-content:space-between; font-size:13.5px; padding:4px 0; }
+  .bill-line.total{ border-top:1px solid var(--line); margin-top:6px; padding-top:8px; font-weight:700; font-size:15.5px; }
+  .fee-item{ display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .fee-item input{ border:1px solid var(--line); border-radius:7px; padding:6px 8px; font-size:13px; }
+  .fee-item .fdesc{ flex:1; }
+  .fee-item .famt{ width:90px; }
+  .fee-item button{ background:none; border:none; color:var(--clay); font-size:16px; padding:0 4px; }
+  .add-fee{ background:none; border:1px dashed var(--line); border-radius:7px; padding:6px 10px; font-size:12.5px; color:var(--moss); width:100%; margin-top:2px;}
+
+  .month-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:6px;}
+  .month-table th{ text-align:left; color:#8a806f; font-weight:600; font-size:11.5px; padding:6px 8px; border-bottom:1px solid var(--line); }
+  .month-table td{ padding:7px 8px; border-bottom:1px solid var(--line); }
+  .month-table tr:hover td{ background:var(--white); }
+  .link-btn{ background:none;border:none;color:var(--moss);font-weight:600;font-size:12.5px; }
+
+  .maint-item{ background:var(--white); border:1px solid var(--line); border-radius:9px; padding:10px 13px; margin-bottom:8px; }
+  .maint-item .d{ font-size:11.5px; color:#8a806f; }
+  .maint-item .c{ font-size:13.5px; margin-top:2px; }
+  .maint-item .cost{ font-size:12px; color:var(--brass); font-weight:600; margin-top:2px;}
+
+  .checkbox-row{ display:flex; align-items:center; gap:8px; margin:10px 0; }
+  .checkbox-row input{ width:17px;height:17px; }
+
+  .loading{ padding:80px 20px; text-align:center; color:#8a806f; font-size:14px;}
+
+  .banner-msg{
+    max-width:1180px; margin:0 auto; background:#FBF3D9; border-bottom:1px solid #e8d69a;
+    color:#6b5410; font-size:13px; padding:9px 28px; text-align:center;
+  }
+  .banner-msg.error{ background:var(--clay-bg); border-bottom-color:#e3bfa8; color:var(--clay); }
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--white); padding:10px 18px; border-radius:8px; font-size:13px; z-index:80;
+    opacity:0; transition:opacity .25s;
+  }
+  .toast.show{ opacity:1; }
+
+  @media (max-width:600px){
+    .field-row{ grid-template-columns:1fr; }
+    .topbar-inner{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <h1>ระบบจัดการห้องเช่า</h1>
+        <p>ดูแลห้องพัก 29 ห้อง · บิล · สัญญา · งานซ่อม · ข้อมูลแชร์ร่วมกันทั้งทีม</p>
+      </div>
+    </div>
+    <div class="tabs" style="align-items:center;">
+      <button class="tab-btn active" data-view="dashboard">ภาพรวม</button>
+      <button class="tab-btn" data-view="rooms">ห้องพักทั้งหมด</button>
+      <button id="refreshBtn" class="tab-btn" title="ดึงข้อมูลล่าสุดจากทีม">↻ รีเฟรช</button>
+      <button id="backupBtn" class="tab-btn" title="สำรองข้อมูลทั้งหมดเป็นไฟล์">⭳ สำรองข้อมูล</button>
+      <button id="restoreBtn" class="tab-btn" title="กู้คืนข้อมูลจากไฟล์สำรอง">⭱ กู้คืน</button>
+      <input type="file" id="restoreFile" accept="application/json" style="display:none;">
+    </div>
+  </div>
+</div>
+
+<div id="banner"></div>
+
+<div class="wrap" id="app">
+  <div class="loading">กำลังโหลดข้อมูลห้องพัก…</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+/* ============================= DATA MODEL ============================= */
+const ROOMS = [
+  {id:'G1', building:'อาคาร A · ริมสวน', price:4000, rentable:true},
+  {id:'G2', building:'อาคาร A · ริมสวน', price:8000, rentable:true},
+  {id:'G3', building:'อาคาร A · ริมสวน', price:0,    rentable:false},
+
+  {id:'1/1', building:'อาคาร B', price:1300},
+  {id:'1/2', building:'อาคาร B', price:1300},
+  {id:'1/3', building:'อาคาร B', price:1500},
+  {id:'1/4', building:'อาคาร B', price:1500},
+  {id:'1/5', building:'อาคาร B', price:1500},
+
+  {id:'2/1', building:'อาคาร C', price:1300},
+  {id:'2/2', building:'อาคาร C', price:1300},
+  {id:'2/3', building:'อาคาร C', price:1300},
+  {id:'2/4', building:'อาคาร C', price:1300},
+  {id:'2/5', building:'อาคาร C', price:2600, ac:true},
+  {id:'2/6', building:'อาคาร C', price:1500},
+  {id:'2/7', building:'อาคาร C', price:1500},
+  {id:'2/8', building:'อาคาร C', price:1500},
+  {id:'2/9', building:'อาคาร C', price:1500},
+
+  {id:'3/1', building:'อาคาร D', price:1300},
+  {id:'3/2', building:'อาคาร D', price:1300},
+  {id:'3/3', building:'อาคาร D', price:1300},
+  {id:'3/4', building:'อาคาร D', price:1300},
+  {id:'3/5', building:'อาคาร D', price:1500},
+  {id:'3/6', building:'อาคาร D', price:1500},
+  {id:'3/7', building:'อาคาร D', price:1500},
+  {id:'3/8', building:'อาคาร D', price:1500},
+  {id:'3/9', building:'อาคาร D', price:1500},
+
+  {id:'4/1', building:'อาคาร E', price:1300},
+  {id:'4/2', building:'อาคาร E', price:1900, ac:true},
+  {id:'4/3', building:'อาคาร E', price:1500},
+];
+ROOMS.forEach(r=>{ if(r.rentable===undefined) r.rentable=true; });
+
+const WATER_RATE = 100;   // บาท/หัว
+const ELEC_RATE  = 7;     // บาท/หน่วย
+const RENEW_MONTHS = 4;
+
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+let roomData = {};        // id -> stored record
+let viewMonth = new Date(); viewMonth.setDate(1);
+let currentView = 'dashboard';
+let roomFilter = 'all';
+let searchTerm = '';
+let modalRoomId = null;
+let modalTab = 'tenant';
+
+/* ============================= STORAGE HELPERS ============================= */
+function defaultRoomRecord(base){
+  return {
+    price: base.price,
+    tenantName:'', phone:'',
+    contractStart:'', contractEnd:'',
+    defaultHeads: 1,
+    bills:{},        // monthKey -> {heads, elecUnits, otherFees:[{desc,amt}], paid, paidDate}
+    maintenance:[]   // {date, desc, cost}
+  };
+}
+
+/* ============================= GOOGLE SHEETS BACKEND CONFIG =============================
+   หลังจาก deploy Google Apps Script แล้ว ให้นำ URL และรหัสลับ (SECRET) มาใส่ 2 บรรทัดนี้
+   (หรือส่งมาให้ Claude แล้วให้ช่วยใส่ให้ก็ได้)                                            */
+const SHEET_API_URL   = "https://script.google.com/macros/s/AKfycbzSghDcG4ZfEaZpmKgwg7y1RI7gplRlmqnpTxstyHmyhr43l07Ia26D70vFYiPvCAov/exec";
+const SHEET_API_TOKEN = "Ab123456";
+const CONFIGURED = !SHEET_API_URL.includes("PASTE_YOUR") && !SHEET_API_TOKEN.includes("PASTE_YOUR");
+
+async function sheetGet(key){
+  const url = `${SHEET_API_URL}?action=get&key=${encodeURIComponent(key)}&token=${encodeURIComponent(SHEET_API_TOKEN)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data.found ? data.value : null;
+}
+
+async function sheetSet(key, value){
+  const res = await fetch(SHEET_API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ action:'set', key, value, token: SHEET_API_TOKEN })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data.ok;
+}
+
+const storageWorks = CONFIGURED;
+let loadErrorRooms = new Set();     // ห้องที่ดึงข้อมูลไม่สำเร็จจริงๆ (ไม่ใช่แค่ยังไม่เคยมีข้อมูล)
+let lastSyncAt = null;
+
+async function fetchRoomOnce(id){
+  // คืนค่า: {ok:true, data} หรือ {ok:false, missing:true} หรือ {ok:false, missing:false}
+  try{
+    const raw = await sheetGet(`room:${id}`);
+    if(raw===null) return { ok:false, missing:true };
+    return { ok:true, data: JSON.parse(raw) };
+  }catch(e){
+    return { ok:false, missing:false, err:e };
+  }
+}
+
+async function loadAllRooms(){
+  loadErrorRooms = new Set();
+  if(!storageWorks){
+    ROOMS.forEach(r=>{ roomData[r.id] = defaultRoomRecord(r); });
+    return;
+  }
+  await Promise.all(ROOMS.map(async (r)=>{
+    let result = await fetchRoomOnce(r.id);
+    if(!result.ok && !result.missing){
+      // ลองใหม่อีกครั้งเผื่อเป็นปัญหาชั่วคราว
+      await new Promise(res=>setTimeout(res, 500));
+      result = await fetchRoomOnce(r.id);
+    }
+    if(result.ok){
+      roomData[r.id] = result.data || defaultRoomRecord(r);
+    } else if(result.missing){
+      roomData[r.id] = defaultRoomRecord(r);
+    } else {
+      // ดึงไม่สำเร็จจริงๆ หลังลองซ้ำ — อย่าเสี่ยงทับข้อมูลเดิม ให้คงค่าที่มีอยู่ในเครื่อง (ถ้ามี) และตั้งค่าสถานะ error
+      if(!roomData[r.id]) roomData[r.id] = defaultRoomRecord(r);
+      loadErrorRooms.add(r.id);
+    }
+  }));
+  lastSyncAt = new Date();
+}
+
+async function saveRoom(id){
+  if(!storageWorks){
+    showToast('ยังไม่ได้เชื่อมต่อ Google Sheets — ข้อมูลจะไม่ถูกบันทึกถาวร');
+    return false;
+  }
+  try{
+    await sheetSet(`room:${id}`, JSON.stringify(roomData[id]));
+    loadErrorRooms.delete(id);
+    showToast(`บันทึกห้อง ${id} เรียบร้อย`);
+    return true;
+  }catch(e){
+    alert(`บันทึกข้อมูลห้อง ${id} ไม่สำเร็จ (${e.message||e}) กรุณาลองใหม่อีกครั้ง (อย่าเพิ่งปิดหน้าต่างนี้)`);
+    return false;
+  }
+}
+
+// รีเฟรชข้อมูลล่าสุดจากทีม (เผื่อคนอื่นเพิ่งบันทึก) ก่อนเปิดห้อง
+async function refreshRoom(id){
+  if(!storageWorks) return;
+  const result = await fetchRoomOnce(id);
+  if(result.ok && result.data){ roomData[id] = result.data; loadErrorRooms.delete(id); }
+  else if(!result.ok && !result.missing) loadErrorRooms.add(id);
+}
+
+function showToast(msg){
+  let t = document.getElementById('toastEl');
+  if(!t){ t = document.createElement('div'); t.id='toastEl'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+function renderBanner(){
+  const el = document.getElementById('banner');
+  if(!storageWorks){
+    el.innerHTML = `<div class="banner-msg error">⚠ ยังไม่ได้เชื่อมต่อ Google Sheets — แก้ค่า SHEET_API_URL และ SHEET_API_TOKEN ที่ต้นไฟล์ก่อน ไม่งั้นข้อมูลจะหายเมื่อปิดหน้าเว็บ</div>`;
+  } else if(loadErrorRooms.size>0){
+    el.innerHTML = `<div class="banner-msg error">⚠ ดึงข้อมูลห้อง ${[...loadErrorRooms].join(', ')} ไม่สำเร็จ — ห้ามบันทึกทับห้องเหล่านี้จนกว่าจะกด "↻ รีเฟรช" สำเร็จ</div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+/* ============================= UTIL ============================= */
+function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function monthLabel(key){ const [y,m]=key.split('-'); return `${THAI_MONTHS[parseInt(m,10)-1]} ${parseInt(y,10)+543}`; }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(s){
+  if(!s) return '—';
+  const d = new Date(s+'T00:00:00');
+  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()+543}`;
+}
+function fmtMoney(n){ return Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const t = new Date(); t.setHours(0,0,0,0);
+  const d = new Date(dateStr+'T00:00:00');
+  return Math.round((d-t)/86400000);
+}
+function addMonths(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setMonth(d.getMonth()+n);
+  return d.toISOString().slice(0,10);
+}
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// ใช้ราคาจริงที่บันทึกไว้ของห้องนั้นๆ (เผื่อมีการแก้ราคาทีหลัง) ไม่ใช่ราคาตั้งต้น
+function currentPrice(id){
+  return (roomData[id] && roomData[id].price!=null) ? roomData[id].price : (ROOMS.find(x=>x.id===id)||{}).price || 0;
+}
+function billTotal(id, bill){
+  const price = currentPrice(id);
+  if(!bill) return price;
+  const fees = (bill.otherFees||[]).reduce((s,f)=>s+(Number(f.amt)||0),0);
+  return price + (Number(bill.heads)||0)*WATER_RATE + (Number(bill.elecUnits)||0)*ELEC_RATE + fees;
+}
+function getBill(id, mKey){
+  const rec = roomData[id];
+  return rec.bills[mKey] || null;
+}
+function ensureBill(id, mKey){
+  const rec = roomData[id];
+  if(!rec.bills[mKey]){
+    rec.bills[mKey] = { heads: rec.defaultHeads||1, elecUnits:0, otherFees:[], paid:false, paidDate:null };
+  }
+  return rec.bills[mKey];
+}
+
+/* ============================= RENDER: SHELL ============================= */
+function switchView(v){
+  currentView = v;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  render();
+}
+document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=>switchView(b.dataset.view)) );
+
+function render(){
+  renderBanner();
+  const app = document.getElementById('app');
+  app.innerHTML = currentView==='dashboard' ? dashboardHTML() : roomsHTML();
+  bindViewEvents();
+}
+
+/* ============================= MONTH PICKER (shared) ============================= */
+function monthPickerHTML(){
+  return `<div class="month-picker">
+    <button id="mPrev">‹</button>
+    <div class="m-label">${monthLabel(monthKey(viewMonth))}</div>
+    <button id="mNext">›</button>
+  </div>`;
+}
+function bindMonthPicker(){
+  document.getElementById('mPrev').onclick = ()=>{ viewMonth.setMonth(viewMonth.getMonth()-1); render(); };
+  document.getElementById('mNext').onclick = ()=>{ viewMonth.setMonth(viewMonth.getMonth()+1); render(); };
+}
+
+/* ============================= DASHBOARD ============================= */
+function dashboardHTML(){
+  const mKey = monthKey(viewMonth);
+  const rentable = ROOMS.filter(r=>r.rentable);
+  const occupied = rentable.filter(r=>roomData[r.id].tenantName.trim()!=='');
+  const vacant = rentable.filter(r=>roomData[r.id].tenantName.trim()==='');
+
+  let expectedTotal = 0, collectedTotal = 0, unpaidCount = 0;
+  occupied.forEach(r=>{
+    const bill = getBill(r.id, mKey);
+    const tot = billTotal(r.id, bill);
+    expectedTotal += tot;
+    if(bill && bill.paid) collectedTotal += tot; else unpaidCount++;
+  });
+
+  // contract alerts
+  const alerts = [];
+  rentable.forEach(r=>{
+    const rec = roomData[r.id];
+    if(!rec.contractEnd) return;
+    const dLeft = daysUntil(rec.contractEnd);
+    if(dLeft < 0) alerts.push({room:r.id, type:'over', text:`สัญญาห้อง ${r.id} หมดอายุแล้ว ${Math.abs(dLeft)} วัน (ผู้เช่า: ${escapeHtml(rec.tenantName)||'—'})`});
+    else if(dLeft <= 14) alerts.push({room:r.id, type:'soon', text:`สัญญาห้อง ${r.id} จะครบกำหนดในอีก ${dLeft} วัน (${fmtDate(rec.contractEnd)}) — เตรียมต่อสัญญาใหม่ทุก ${RENEW_MONTHS} เดือน`});
+  });
+
+  const unpaidRooms = occupied.filter(r=>{ const b=getBill(r.id,mKey); return !b || !b.paid; });
+
+  return `
+    <h2 class="section-title">ภาพรวมประจำเดือน</h2>
+    <p class="section-sub">สรุปรายรับและสถานะห้องพัก เลือกเดือนที่ต้องการดูได้ด้านล่าง</p>
+    ${monthPickerHTML()}
+
+    <div class="stat-grid">
+      <div class="stat-card accent"><div class="num">${occupied.length}/${rentable.length}</div><div class="lbl">ห้องมีผู้เช่า</div></div>
+      <div class="stat-card"><div class="num">${vacant.length}</div><div class="lbl">ห้องว่าง</div></div>
+      <div class="stat-card"><div class="num">฿${fmtMoney(expectedTotal)}</div><div class="lbl">รายรับที่คาดไว้เดือนนี้</div></div>
+      <div class="stat-card"><div class="num">฿${fmtMoney(collectedTotal)}</div><div class="lbl">เก็บได้แล้ว</div></div>
+      <div class="stat-card warn"><div class="num">${unpaidCount}</div><div class="lbl">ห้องยังไม่จ่าย</div></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:16px;">แจ้งเตือนสัญญาเช่า</h3>
+    <div class="alert-list">
+      ${alerts.length ? alerts.sort((a,b)=> a.type==='over'?-1:1).map(a=>`
+        <div class="alert-item ${a.type==='soon'?'soft':''}">
+          <span>${a.text}</span>
+          <button data-open="${a.room}">จัดการ</button>
+        </div>`).join('') : `<div class="empty-note">ไม่มีสัญญาที่ใกล้ครบกำหนดในช่วงนี้</div>`}
+    </div>
+
+    <h3 class="section-title" style="font-size:16px;">ห้องที่ยังไม่ชำระ — ${monthLabel(mKey)}</h3>
+    <div class="alert-list">
+      ${unpaidRooms.length ? unpaidRooms.map(r=>`
+        <div class="alert-item">
+          <span><b>${r.id}</b> — ${escapeHtml(roomData[r.id].tenantName) || 'ไม่ระบุชื่อผู้เช่า'} · ค่าเช่ารวมประมาณ ฿${fmtMoney(billTotal(r.id, getBill(r.id,mKey)))}</span>
+          <button data-open="${r.id}">จัดการ</button>
+        </div>`).join('') : `<div class="empty-note">ห้องที่มีผู้เช่าทั้งหมดชำระแล้วในเดือนนี้</div>`}
+    </div>
+  `;
+}
+
+/* ============================= ROOMS LIST ============================= */
+function roomsHTML(){
+  const mKey = monthKey(viewMonth);
+  const buildings = [...new Set(ROOMS.map(r=>r.building))];
+
+  let list = ROOMS.filter(r=>{
+    if(searchTerm){
+      const rec = roomData[r.id];
+      const hay = (r.id+' '+rec.tenantName).toLowerCase();
+      if(!hay.includes(searchTerm.toLowerCase())) return false;
+    }
+    if(roomFilter==='occupied') return r.rentable && roomData[r.id].tenantName.trim()!=='';
+    if(roomFilter==='vacant') return r.rentable && roomData[r.id].tenantName.trim()==='';
+    if(roomFilter==='unpaid'){ if(!r.rentable) return false; const b=getBill(r.id,mKey); return roomData[r.id].tenantName.trim()!=='' && (!b||!b.paid); }
+    return true;
+  });
+
+  const blocks = buildings.map(b=>{
+    const rooms = list.filter(r=>r.building===b);
+    if(!rooms.length) return '';
+    return `
+      <div class="building-block">
+        <div class="building-head"><h3>${b}</h3><span>${rooms.length} ห้อง</span></div>
+        <div class="room-grid">
+          ${rooms.map(r=>roomCardHTML(r, mKey)).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <h2 class="section-title">ห้องพักทั้งหมด</h2>
+    <p class="section-sub">คลิกที่ห้องเพื่อดูรายละเอียด บันทึกบิล สัญญา และประวัติซ่อมบำรุง</p>
+    ${monthPickerHTML()}
+    <div class="filter-row">
+      <button class="fbtn ${roomFilter==='all'?'active':''}" data-f="all">ทั้งหมด</button>
+      <button class="fbtn ${roomFilter==='occupied'?'active':''}" data-f="occupied">มีผู้เช่า</button>
+      <button class="fbtn ${roomFilter==='vacant'?'active':''}" data-f="vacant">ห้องว่าง</button>
+      <button class="fbtn ${roomFilter==='unpaid'?'active':''}" data-f="unpaid">ยังไม่จ่าย (เดือนนี้)</button>
+      <input class="searchbox" id="searchBox" placeholder="ค้นหาห้อง / ชื่อผู้เช่า" value="${escapeHtml(searchTerm)}">
+    </div>
+    ${blocks || `<div class="empty-note">ไม่พบห้องที่ตรงกับเงื่อนไข</div>`}
+  `;
+}
+
+function roomCardHTML(r, mKey){
+  const rec = roomData[r.id];
+  const occupied = rec.tenantName.trim()!=='';
+  const bill = getBill(r.id, mKey);
+  const dLeft = rec.contractEnd ? daysUntil(rec.contractEnd) : null;
+
+  let badges = '';
+  if(!r.rentable){
+    badges += `<span class="badge" style="background:#eee;color:#888;">ไม่ปล่อยเช่า</span>`;
+  } else if(occupied){
+    badges += bill && bill.paid ? `<span class="badge paid">จ่ายแล้ว</span>` : `<span class="badge unpaid">ยังไม่จ่าย</span>`;
+    if(dLeft!==null){
+      if(dLeft<0) badges += `<span class="badge exp-over">สัญญาหมดอายุ</span>`;
+      else if(dLeft<=14) badges += `<span class="badge exp-soon">ใกล้ครบสัญญา</span>`;
+    }
+  }
+  if(r.ac) badges += `<span class="badge ac">แอร์</span>`;
+
+  return `
+    <div class="room-card ${occupied?'':'vacant'}" data-open="${r.id}">
+      <div class="rid">${r.id}</div>
+      <div class="price">${r.rentable? '฿'+fmtMoney(currentPrice(r.id))+' / เดือน' : 'ไม่ให้เช่า'}</div>
+      <div class="tenant ${occupied?'':'muted'}">${occupied ? escapeHtml(rec.tenantName) : 'ห้องว่าง'}</div>
+      <div>${badges}</div>
+    </div>`;
+}
+
+function bindViewEvents(){
+  const mPrev = document.getElementById('mPrev'); if(mPrev) bindMonthPicker();
+  document.querySelectorAll('[data-open]').forEach(el=>{
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); openModal(el.dataset.open); });
+  });
+  document.querySelectorAll('[data-f]').forEach(el=>{
+    el.addEventListener('click', ()=>{ roomFilter = el.dataset.f; render(); });
+  });
+  const sb = document.getElementById('searchBox');
+  if(sb) sb.addEventListener('input', ()=>{ searchTerm = sb.value; render(); });
+}
+
+/* ============================= MODAL ============================= */
+async function openModal(id){
+  modalRoomId = id; modalTab = 'tenant';
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('modalBox').innerHTML = `<div class="loading">กำลังดึงข้อมูลล่าสุด…</div>`;
+  await refreshRoom(id);
+  renderModal();
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('show');
+  modalRoomId = null;
+  render();
+}
+document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
+
+function renderModal(){
+  const r = ROOMS.find(x=>x.id===modalRoomId);
+  const rec = roomData[modalRoomId];
+  const box = document.getElementById('modalBox');
+  box.innerHTML = `
+    <div class="modal-head">
+      <div>
+        <h2>ห้อง ${r.id}</h2>
+        <div class="sub">${r.building} · ฿${fmtMoney(currentPrice(r.id))}/เดือน ${r.ac?'· ห้องแอร์':''}</div>
+      </div>
+      <button id="closeModal">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button data-t="tenant" class="${modalTab==='tenant'?'active':''}">ผู้เช่า &amp; สัญญา</button>
+      <button data-t="bill" class="${modalTab==='bill'?'active':''}">บิลรายเดือน</button>
+      <button data-t="maint" class="${modalTab==='maint'?'active':''}">ประวัติซ่อมบำรุง</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  `;
+  document.getElementById('closeModal').onclick = closeModal;
+  box.querySelectorAll('.modal-tabs button').forEach(b=>{
+    b.onclick = ()=>{ modalTab=b.dataset.t; renderModal(); };
+  });
+  const body = document.getElementById('modalBody');
+  if(modalTab==='tenant') body.innerHTML = tenantTabHTML(r, rec);
+  else if(modalTab==='bill') body.innerHTML = billTabHTML(r, rec);
+  else body.innerHTML = maintTabHTML(rec);
+  bindModalTabEvents(r, rec);
+}
+
+/* ---- Tenant & contract tab ---- */
+function tenantTabHTML(r, rec){
+  const dLeft = rec.contractEnd ? daysUntil(rec.contractEnd) : null;
+  let statusLine = '';
+  if(rec.contractEnd){
+    if(dLeft<0) statusLine = `<span class="badge exp-over">หมดอายุแล้ว ${Math.abs(dLeft)} วัน</span>`;
+    else if(dLeft<=14) statusLine = `<span class="badge exp-soon">เหลือ ${dLeft} วัน</span>`;
+    else statusLine = `<span class="badge paid">ยังไม่ครบกำหนด (${dLeft} วัน)</span>`;
+  }
+  return `
+    <div class="field-row">
+      <div class="field"><label>ชื่อผู้เช่า</label><input id="fTenant" value="${escapeHtml(rec.tenantName)}" placeholder="ยังไม่มีผู้เช่า"></div>
+      <div class="field"><label>เบอร์โทร</label><input id="fPhone" value="${escapeHtml(rec.phone)}" placeholder="08x-xxx-xxxx"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>ค่าเช่า / เดือน (บาท)</label><input id="fPrice" type="number" value="${rec.price}"></div>
+      <div class="field"><label>จำนวนผู้พักอาศัย (คน) — ใช้คิดค่าน้ำ</label><input id="fHeads" type="number" min="0" value="${rec.defaultHeads||1}"></div>
+    </div>
+    <hr class="divider">
+    <div class="field-row">
+      <div class="field"><label>วันที่เริ่มสัญญา</label><input id="fStart" type="date" value="${rec.contractStart}"></div>
+      <div class="field"><label>วันที่ครบกำหนดสัญญา</label><input id="fEnd" type="date" value="${rec.contractEnd}"></div>
+    </div>
+    <div class="hint">ระบบต่อสัญญาใหม่ทุก ${RENEW_MONTHS} เดือน — กด "ต่อสัญญาใหม่" เพื่อคำนวณวันครบกำหนดถัดไปให้อัตโนมัติ ${statusLine}</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="saveTenant">บันทึกข้อมูล</button>
+      <button class="btn btn-ghost" id="renewBtn">ต่อสัญญาใหม่ (+${RENEW_MONTHS} เดือน)</button>
+    </div>
+  `;
+}
+
+/* ---- Bill tab ---- */
+function billTabHTML(r, rec){
+  const mKey = monthKey(viewMonth);
+  const bill = ensureBill(modalRoomId, mKey);
+  const rent = currentPrice(modalRoomId);
+  const water = (Number(bill.heads)||0)*WATER_RATE;
+  const elec = (Number(bill.elecUnits)||0)*ELEC_RATE;
+  const feesTotal = (bill.otherFees||[]).reduce((s,f)=>s+(Number(f.amt)||0),0);
+  const total = rent+water+elec+feesTotal;
+
+  const monthRows = Object.keys(rec.bills).sort().reverse().slice(0,12).map(k=>{
+    const b = rec.bills[k];
+    const t = billTotal(modalRoomId, b);
+    return `<tr>
+      <td>${monthLabel(k)}</td>
+      <td>฿${fmtMoney(t)}</td>
+      <td>${b.paid ? `<span class="badge paid">จ่ายแล้ว${b.paidDate? ' · '+fmtDate(b.paidDate):''}</span>` : `<span class="badge unpaid">ค้างชำระ</span>`}</td>
+      <td><button class="link-btn" data-gomonth="${k}">เปิดดู</button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="hint">กำลังแก้ไขบิลของเดือน: <b>${monthLabel(mKey)}</b> (เปลี่ยนเดือนได้จากตัวเลือกเดือนด้านหลังหน้าต่างนี้)</div>
+    <div class="field-row">
+      <div class="field"><label>จำนวนผู้พัก (หัวละ ฿${WATER_RATE})</label><input id="bHeads" type="number" min="0" value="${bill.heads}"></div>
+      <div class="field"><label>หน่วยไฟที่ใช้ (หน่วยละ ฿${ELEC_RATE})</label><input id="bElec" type="number" min="0" value="${bill.elecUnits}"></div>
+    </div>
+    <label style="font-size:12.5px;color:#6b6154;font-weight:500;">ค่าปรับ / ค่าใช้จ่ายอื่นๆ</label>
+    <div id="feeList">
+      ${(bill.otherFees||[]).map((f,i)=>`
+        <div class="fee-item" data-idx="${i}">
+          <input class="fdesc" placeholder="รายการ เช่น ค่าปรับจอดรถ" value="${escapeHtml(f.desc)}">
+          <input class="famt" type="number" placeholder="บาท" value="${Number(f.amt)||0}">
+          <button data-rmfee="${i}">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="add-fee" id="addFee">+ เพิ่มรายการค่าใช้จ่ายอื่น</button>
+
+    <div class="bill-summary">
+      <div class="bill-line"><span>ค่าเช่าห้อง</span><span>฿${fmtMoney(rent)}</span></div>
+      <div class="bill-line"><span>ค่าน้ำ</span><span>฿${fmtMoney(water)}</span></div>
+      <div class="bill-line"><span>ค่าไฟ</span><span>฿${fmtMoney(elec)}</span></div>
+      <div class="bill-line"><span>ค่าใช้จ่ายอื่นๆ</span><span>฿${fmtMoney(feesTotal)}</span></div>
+      <div class="bill-line total"><span>รวมทั้งสิ้น</span><span>฿${fmtMoney(total)}</span></div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="bPaid" ${bill.paid?'checked':''}>
+      <label for="bPaid">ชำระค่าเช่าเดือนนี้แล้ว</label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="saveBill">บันทึกบิลเดือนนี้</button>
+    </div>
+
+    <hr class="divider">
+    <label style="font-size:12.5px;color:#6b6154;font-weight:500;">ประวัติบิลย้อนหลัง</label>
+    ${monthRows ? `<table class="month-table"><thead><tr><th>เดือน</th><th>ยอดรวม</th><th>สถานะ</th><th></th></tr></thead><tbody>${monthRows}</tbody></table>` : `<div class="empty-note">ยังไม่มีประวัติบิล</div>`}
+  `;
+}
+
+/* ---- Maintenance tab ---- */
+function maintTabHTML(rec){
+  const items = [...rec.maintenance].sort((a,b)=> b.date.localeCompare(a.date));
+  return `
+    <div class="field-row">
+      <div class="field"><label>วันที่ซ่อม/เปลี่ยน</label><input id="mDate" type="date" value="${todayStr()}"></div>
+      <div class="field"><label>ค่าใช้จ่าย (บาท, ถ้ามี)</label><input id="mCost" type="number" min="0" placeholder="0"></div>
+      <div class="field full"><label>รายละเอียด</label><input id="mDesc" placeholder="เช่น เปลี่ยนแอร์, ซ่อมท่อน้ำรั่ว"></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-primary" id="addMaint">+ เพิ่มบันทึกซ่อมบำรุง</button></div>
+    <hr class="divider">
+    ${items.length ? items.map((m,i)=>`
+      <div class="maint-item">
+        <div class="d">${fmtDate(m.date)}</div>
+        <div class="c">${escapeHtml(m.desc)}</div>
+        ${m.cost ? `<div class="cost">ค่าใช้จ่าย ฿${fmtMoney(m.cost)}</div>` : ''}
+      </div>`).join('') : `<div class="empty-note">ยังไม่มีประวัติซ่อมบำรุงสำหรับห้องนี้</div>`}
+  `;
+}
+
+/* ---- bind interactions inside modal ---- */
+function bindModalTabEvents(r, rec){
+  if(modalTab==='tenant'){
+    document.getElementById('renewBtn').onclick = ()=>{
+      const startEl = document.getElementById('fStart');
+      const endEl = document.getElementById('fEnd');
+      const base = endEl.value || startEl.value || todayStr();
+      const newStart = base;
+      const newEnd = addMonths(base, RENEW_MONTHS);
+      startEl.value = newStart; endEl.value = newEnd;
+    };
+    document.getElementById('saveTenant').onclick = async ()=>{
+      rec.tenantName = document.getElementById('fTenant').value.trim();
+      rec.phone = document.getElementById('fPhone').value.trim();
+      rec.price = Number(document.getElementById('fPrice').value)||0;
+      rec.defaultHeads = Number(document.getElementById('fHeads').value)||0;
+      rec.contractStart = document.getElementById('fStart').value;
+      rec.contractEnd = document.getElementById('fEnd').value;
+      await saveRoom(modalRoomId);
+      renderModal();
+    };
+  }
+  if(modalTab==='bill'){
+    document.getElementById('addFee').onclick = ()=>{
+      const mKey = monthKey(viewMonth);
+      const bill = ensureBill(modalRoomId, mKey);
+      bill.otherFees = bill.otherFees||[];
+      bill.otherFees.push({desc:'',amt:0});
+      renderModal();
+    };
+    document.querySelectorAll('[data-rmfee]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const mKey = monthKey(viewMonth);
+        const bill = ensureBill(modalRoomId, mKey);
+        bill.otherFees.splice(Number(btn.dataset.rmfee),1);
+        renderModal();
+      };
+    });
+    document.querySelectorAll('[data-gomonth]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const [y,m] = btn.dataset.gomonth.split('-');
+        viewMonth = new Date(Number(y), Number(m)-1, 1);
+        renderModal();
+      };
+    });
+    document.getElementById('saveBill').onclick = async ()=>{
+      const mKey = monthKey(viewMonth);
+      const bill = ensureBill(modalRoomId, mKey);
+      bill.heads = Number(document.getElementById('bHeads').value)||0;
+      bill.elecUnits = Number(document.getElementById('bElec').value)||0;
+      const descs = document.querySelectorAll('#feeList .fdesc');
+      const amts = document.querySelectorAll('#feeList .famt');
+      bill.otherFees = Array.from(descs).map((d,i)=>({desc:d.value, amt:Number(amts[i].value)||0}));
+      const wasPaid = bill.paid;
+      bill.paid = document.getElementById('bPaid').checked;
+      if(bill.paid && !wasPaid) bill.paidDate = todayStr();
+      if(!bill.paid) bill.paidDate = null;
+      await saveRoom(modalRoomId);
+      renderModal();
+    };
+  }
+  if(modalTab==='maint'){
+    document.getElementById('addMaint').onclick = async ()=>{
+      const date = document.getElementById('mDate').value || todayStr();
+      const desc = document.getElementById('mDesc').value.trim();
+      const cost = Number(document.getElementById('mCost').value)||0;
+      if(!desc){ alert('กรุณาระบุรายละเอียดงานซ่อม'); return; }
+      rec.maintenance.push({date, desc, cost});
+      await saveRoom(modalRoomId);
+      renderModal();
+    };
+  }
+}
+
+/* ============================= BACKUP / RESTORE ============================= */
+function downloadBackup(){
+  const payload = { exportedAt: new Date().toISOString(), rooms: roomData };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = url;
+  a.download = `rental-backup-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('ดาวน์โหลดไฟล์สำรองข้อมูลแล้ว');
+}
+
+async function restoreFromFile(file){
+  let parsed;
+  try{
+    const text = await file.text();
+    parsed = JSON.parse(text);
+  }catch(e){
+    alert('ไฟล์นี้ไม่ใช่ไฟล์สำรองข้อมูลที่ถูกต้อง');
+    return;
+  }
+  if(!parsed || typeof parsed.rooms !== 'object'){
+    alert('รูปแบบไฟล์ไม่ถูกต้อง');
+    return;
+  }
+  const ids = Object.keys(parsed.rooms).filter(id => ROOMS.some(r=>r.id===id));
+  if(!ids.length){ alert('ไม่พบข้อมูลห้องที่ตรงกับระบบนี้ในไฟล์'); return; }
+  const ok = confirm(`ไฟล์นี้มีข้อมูล ${ids.length} ห้อง (สำรองเมื่อ ${parsed.exportedAt ? fmtDate(parsed.exportedAt.slice(0,10)) : 'ไม่ทราบวันที่'})\n\nการกู้คืนจะเขียนทับข้อมูลปัจจุบันของห้องเหล่านี้ทั้งหมด ยืนยันหรือไม่?`);
+  if(!ok) return;
+  for(const id of ids){
+    roomData[id] = parsed.rooms[id];
+    await saveRoom(id);
+  }
+  showToast('กู้คืนข้อมูลเรียบร้อยแล้ว');
+  render();
+}
+
+/* ============================= INIT ============================= */
+document.getElementById('refreshBtn').addEventListener('click', async ()=>{
+  showToast('กำลังดึงข้อมูลล่าสุด…');
+  await loadAllRooms();
+  if(modalRoomId) await refreshRoom(modalRoomId);
+  render();
+  if(modalRoomId) renderModal();
+  showToast('ข้อมูลล่าสุดแล้ว');
+});
+document.getElementById('backupBtn').addEventListener('click', downloadBackup);
+document.getElementById('restoreBtn').addEventListener('click', ()=> document.getElementById('restoreFile').click());
+document.getElementById('restoreFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  if(f) restoreFromFile(f);
+  e.target.value = '';
+});
+
+(async function init(){
+  await loadAllRooms();
+  render();
+  // ดึงข้อมูลล่าสุดจากทีมทุก 60 วินาที เฉพาะตอนไม่มีหน้าต่างแก้ไขเปิดอยู่ (กันข้อมูลตีกัน)
+  if(storageWorks){
+    setInterval(async ()=>{
+      if(!modalRoomId){ await loadAllRooms(); render(); }
+    }, 60000);
+  }
+})();
+</script>
+</body>
+</html>
